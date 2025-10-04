@@ -14,7 +14,7 @@ spec:
       automountServiceAccountToken: true
       containers:
         - name: operator
-          image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:sha-fa69f74
+          image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:sha-220d0ac
           startupProbe:
             httpGet:
               port: 8081
