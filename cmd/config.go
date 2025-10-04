@@ -5,7 +5,7 @@ import (
 	"github.com/lukaspj/talos-cluster-operator/pkg/operator"
 )
 
-func Config(envPrefix string) (operator.Config, error) {
+func Config() (operator.Config, error) {
 	config, err := fang.New[operator.Config]().
 		WithAutomaticEnv("TALOS_OPERATOR").
 		Load()
