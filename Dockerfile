@@ -14,7 +14,7 @@ ARG TARGETARCH
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags "-X cmd.commit=$SHA -X cmd.date=$DATE" -o talos-cluster-operator main.go
 
-FROM alpine:3.19 AS runtime
+FROM scratch AS runtime
 
 COPY --from=build /src/talos-cluster-operator /talos-cluster-operator
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
