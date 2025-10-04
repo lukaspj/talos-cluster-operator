@@ -16,6 +16,6 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags "-X cm
 
 FROM alpine:3.19 AS runtime
 
-COPY --from=build /src/talos-cluster-operator /usr/local/bin/talos-cluster-operator
+COPY --from=build /src/talos-cluster-operator /talos-cluster-operator
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENTRYPOINT ["talos-cluster-operator", "operator"]
