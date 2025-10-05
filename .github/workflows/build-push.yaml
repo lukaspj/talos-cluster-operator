@@ -3,6 +3,13 @@ name: Build and Push Image to GHCR
 on:
   push:
     branches: [ main ]
+    paths:
+      - .github/workflows/build-push.yaml
+      - main.go
+      - pkg/**/*
+      - cmd/*
+      - go.mod
+      - go.sum
 
 permissions:
   contents: read
