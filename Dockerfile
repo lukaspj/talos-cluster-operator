@@ -18,4 +18,4 @@ FROM scratch AS runtime
 
 COPY --from=build /src/talos-cluster-operator /talos-cluster-operator
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-ENTRYPOINT ["talos-cluster-operator", "operator"]
+ENTRYPOINT ["/talos-cluster-operator", "operator"]
