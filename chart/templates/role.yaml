@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}
+rules:
+  - verbs:
+      - '*'
+    apiGroups:
+      - talos-cluster-operator.lukaspj.com
+    resources:
+      - clusters
+      - machines
