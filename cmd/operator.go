@@ -44,7 +44,7 @@ var operatorCmd = &cobra.Command{
 			return err
 		}
 
-		machineReconciler := &operator.TalosClusterReconciler{
+		machineReconciler := &operator.TalosMachineReconciler{
 			Client:   mgr.GetClient(),
 			Scheme:   mgr.GetScheme(),
 			Recorder: mgr.GetEventRecorderFor("talos-machine-controller"),
