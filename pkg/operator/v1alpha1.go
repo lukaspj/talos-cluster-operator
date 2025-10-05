@@ -36,11 +36,11 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	ready := true
 
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:6443", machine.Spec.IP))
-	defer conn.Close()
 	if err != nil {
 		t.Recorder.Event(machine, "ConnectivityTest", "Failed", err.Error())
 		ready = false
 	}
+	defer conn.Close()
 
 	if !ready {
 		t.Recorder.Event(machine, "Ready", "False", "One or more checks failed")

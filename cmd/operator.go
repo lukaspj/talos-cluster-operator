@@ -66,7 +66,7 @@ var operatorCmd = &cobra.Command{
 			return err
 		}
 
-		if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		if err = mgr.AddHealthzCheck("livez", healthz.Ping); err != nil {
 			slog.Error("unable to set up health check", "error", err)
 			return err
 		}
