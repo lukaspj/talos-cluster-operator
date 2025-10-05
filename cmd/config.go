@@ -7,6 +7,7 @@ import (
 
 func Config() (operator.Config, error) {
 	config, err := fang.New[operator.Config]().
+		WithDefault(operator.DefaultConfig()).
 		WithAutomaticEnv("TALOS_OPERATOR").
 		Load()
 
