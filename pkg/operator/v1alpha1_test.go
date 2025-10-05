@@ -2,22 +2,23 @@ package operator
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	"github.com/lukaspj/talos-cluster-operator/pkg/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"strings"
-	"testing"
 )
 
 func TestTalosMachineReconciler_Reconcile(t *testing.T) {
@@ -35,7 +36,7 @@ func TestTalosMachineReconciler_Reconcile(t *testing.T) {
 
 	binPath := ""
 	// TODO traverse parents
-	require.NoError(t, filepath.WalkDir(path.Join(pwd, "..", "..", "bin", "k8s"), func(path string, d os.DirEntry, err error) error {
+	require.NoError(t, filepath.WalkDir(filepath.Join(pwd, "..", "..", "bin", "k8s"), func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

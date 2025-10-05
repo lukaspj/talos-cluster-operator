@@ -10,3 +10,30 @@ rules:
     resources:
       - clusters
       - machines
+  - verbs:
+      - '*'
+    apiGroups:
+      - talos-cluster-operator.lukaspj.com
+    resources:
+      - clusters
+      - machines
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+
