@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"log/slog"
+
 	"github.com/go-logr/logr"
 	"github.com/lukaspj/talos-cluster-operator/pkg/api/v1alpha1"
 	"github.com/lukaspj/talos-cluster-operator/pkg/operator"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
-	"log/slog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
@@ -38,6 +39,8 @@ var operatorCmd = &cobra.Command{
 			LeaderElectionNamespace: cfg.Namespace,
 			LeaderElection:          cfg.EnableLeaderElection,
 			LeaderElectionID:        "election42.talos-cluster-operator.lukaspj.com",
+			LivenessEndpointName:    "/livez",
+			ReadinessEndpointName:   "/readyz",
 		})
 		if err != nil {
 			slog.Error("unable to start manager", "error", err)
