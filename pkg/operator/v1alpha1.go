@@ -60,7 +60,7 @@ type TalosClusterReconciler struct {
 func (t *TalosClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	t.Recorder = mgr.GetEventRecorderFor("talos-cluster-controller")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Machine{}).
+		For(&v1alpha1.Cluster{}).
 		Complete(t)
 }
 
