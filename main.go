@@ -1,4 +1,4 @@
-package talos_cluster_operator
+package main
 
 import "github.com/lukaspj/talos-cluster-operator/cmd"
 
