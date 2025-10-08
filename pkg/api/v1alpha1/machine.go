@@ -8,6 +8,7 @@ type MachineSpec struct {
 	IP string `json:"ip"`
 
 	// +kubebuilder:default:=6443
+	// +kubebuilder:validation:Optional
 	Port int `json:"port"`
 }
 

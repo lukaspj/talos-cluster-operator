@@ -45,7 +45,6 @@ spec:
                 type: integer
             required:
             - ip
-            - port
             type: object
           status:
             properties:
