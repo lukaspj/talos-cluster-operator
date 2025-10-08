@@ -2,7 +2,9 @@ package operator
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"maps"
 	"net"
@@ -10,7 +12,10 @@ import (
 	"time"
 
 	"github.com/lukaspj/talos-cluster-operator/pkg/api/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterapi "github.com/siderolabs/talos/pkg/machinery/api/cluster"
+	talosctl "github.com/siderolabs/talos/pkg/machinery/client"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,8 +35,6 @@ func (t *TalosMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(t)
 }
 
-// "github.com/siderolabs/talos/pkg/machinery/client"
-
 func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	machine := &v1alpha1.Machine{}
 	if err := t.Get(ctx, req.NamespacedName, machine); err != nil {
@@ -40,7 +43,7 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	ready := true
 
-	conditions := make(map[string]v1.Condition)
+	conditions := make(map[string]metav1.Condition)
 	for _, condition := range machine.Status.Conditions {
 		conditions[condition.Type] = condition
 	}
@@ -54,33 +57,33 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		t.Recorder.Event(machine, "Warning", "ConnectivityTestFailed", err.Error())
 		ready = false
 		oldAvailable, ok := conditions["Available"]
-		newAvailable := v1.Condition{
+		newAvailable := metav1.Condition{
 			Type:               "Available",
-			Status:             v1.ConditionFalse,
+			Status:             metav1.ConditionFalse,
 			Reason:             "ConnectivityTestFailed",
 			Message:            err.Error(),
 			ObservedGeneration: oldAvailable.ObservedGeneration,
 			LastTransitionTime: oldAvailable.LastTransitionTime,
 		}
-		if oldAvailable.Status == v1.ConditionTrue || !ok {
+		if oldAvailable.Status == metav1.ConditionTrue || !ok {
 			newAvailable.ObservedGeneration = machine.Generation
-			newAvailable.LastTransitionTime = v1.Now()
+			newAvailable.LastTransitionTime = metav1.Now()
 		}
 		conditions["Available"] = newAvailable
 	} else {
 		defer conn.Close()
 		oldAvailable, ok := conditions["Available"]
-		newAvailable := v1.Condition{
+		newAvailable := metav1.Condition{
 			Type:               "Available",
-			Status:             v1.ConditionTrue,
+			Status:             metav1.ConditionTrue,
 			Reason:             "ConnectivityTestSucceeded",
 			Message:            fmt.Sprintf("Managed to establish a connection to the machine at %s:%d"+machine.Spec.IP, port),
 			ObservedGeneration: oldAvailable.ObservedGeneration,
 			LastTransitionTime: oldAvailable.LastTransitionTime,
 		}
-		if oldAvailable.Status == v1.ConditionFalse || !ok {
+		if oldAvailable.Status == metav1.ConditionFalse || !ok {
 			newAvailable.ObservedGeneration = machine.Generation
-			newAvailable.LastTransitionTime = v1.Now()
+			newAvailable.LastTransitionTime = metav1.Now()
 		}
 		conditions["Available"] = newAvailable
 	}
@@ -88,17 +91,17 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if !ready {
 		t.Recorder.Event(machine, "Warning", "Unready", "One or more checks failed")
 		oldReady, ok := conditions["Ready"]
-		newReady := v1.Condition{
+		newReady := metav1.Condition{
 			Type:               "Ready",
-			Status:             v1.ConditionFalse,
+			Status:             metav1.ConditionFalse,
 			Reason:             "ChecksFailed",
 			Message:            "One or more checks failed",
 			ObservedGeneration: oldReady.ObservedGeneration,
 			LastTransitionTime: oldReady.LastTransitionTime,
 		}
-		if oldReady.Status == v1.ConditionTrue || !ok {
+		if oldReady.Status == metav1.ConditionTrue || !ok {
 			newReady.ObservedGeneration = machine.Generation
-			newReady.LastTransitionTime = v1.Now()
+			newReady.LastTransitionTime = metav1.Now()
 		}
 		conditions["Ready"] = newReady
 
@@ -112,17 +115,17 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	oldReady, ok := conditions["Ready"]
-	newReady := v1.Condition{
+	newReady := metav1.Condition{
 		Type:               "Ready",
-		Status:             v1.ConditionTrue,
+		Status:             metav1.ConditionTrue,
 		Reason:             "Ready",
 		Message:            "All checks passed",
 		ObservedGeneration: oldReady.ObservedGeneration,
 		LastTransitionTime: oldReady.LastTransitionTime,
 	}
-	if oldReady.Status == v1.ConditionFalse || !ok {
+	if oldReady.Status == metav1.ConditionFalse || !ok {
 		newReady.ObservedGeneration = machine.Generation
-		newReady.LastTransitionTime = v1.Now()
+		newReady.LastTransitionTime = metav1.Now()
 	}
 	conditions["Ready"] = newReady
 
@@ -131,6 +134,17 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	err = t.Status().Update(ctx, machine)
 	if err != nil {
 		slog.Error("unable to update machine status", "error", err)
+	}
+
+	node := &v1alpha1.Node{}
+	if err = t.Get(ctx, req.NamespacedName, node); err != nil && !k8serrors.IsNotFound(err) {
+		slog.Error("unable to get node", "error", err)
+		return ctrl.Result{}, err
+	}
+
+	if node.Name == "" {
+		node.Name = machine.Name
+		node.Namespace = machine.Namespace
 	}
 
 	return ctrl.Result{}, nil
@@ -155,6 +169,49 @@ func (t *TalosClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	cluster := &v1alpha1.Cluster{}
 	if err := t.Get(ctx, req.NamespacedName, cluster); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	machines := &v1alpha1.MachineList{}
+
+	machineSelector, err := metav1.LabelSelectorAsSelector(&cluster.Spec.Nodes.Selector)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := t.List(ctx, machines, client.MatchingLabelsSelector{Selector: machineSelector}); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	var endpoints []string
+	for _, m := range machines.Items {
+		port := m.Spec.Port
+		if port == 0 {
+			port = 6443
+		}
+		endpoints = append(endpoints, fmt.Sprintf("%s:%d", m.Spec.IP, port))
+	}
+
+	ctl, err := talosctl.New(ctx, talosctl.WithEndpoints(endpoints...), talosctl.WithConfigFromFile("/var/run/secrets/talos.dev"))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	hcClient, err := ctl.ClusterHealthCheck(ctx, time.Minute, &clusterapi.ClusterInfo{})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	for {
+		status, err := hcClient.Recv()
+		if err == nil {
+			slog.Info("health check status", "message", status.Message, "metadata", status.Metadata)
+		}
+
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil

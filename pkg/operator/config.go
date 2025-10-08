@@ -4,6 +4,8 @@ type Config struct {
 	ProbeAddr            string
 	Namespace            string
 	EnableLeaderElection bool
+	ConfigSecretName     string
+	ConfigSecretKey      string
 }
 
 func DefaultConfig() Config {
@@ -11,6 +13,8 @@ func DefaultConfig() Config {
 		ProbeAddr:            ":8081",
 		Namespace:            "talos-cluster-operator",
 		EnableLeaderElection: true,
+		ConfigSecretName:     "talos-config",
+		ConfigSecretKey:      "config",
 	}
 }
 

@@ -28,3 +28,10 @@ spec:
             httpGet:
               port: 8081
               path: /readyz
+          volumeMounts:
+            - mountPath: /var/run/secrets/talos.dev
+              name: talos-secrets
+      volumes:
+        - name: talos-secrets
+          secret:
+            secretName: talos-api-access-talos-secrets
