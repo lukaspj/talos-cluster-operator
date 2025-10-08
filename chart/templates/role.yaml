@@ -8,15 +8,7 @@ rules:
     apiGroups:
       - talos-cluster-operator.lukaspj.com
     resources:
-      - clusters
-      - machines
-  - verbs:
-      - '*'
-    apiGroups:
-      - talos-cluster-operator.lukaspj.com
-    resources:
-      - clusters
-      - machines
+      - *
   - apiGroups:
       - coordination.k8s.io
     resources:
