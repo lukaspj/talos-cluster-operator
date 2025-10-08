@@ -7,7 +7,7 @@ import (
 type MachineSpec struct {
 	IP string `json:"ip"`
 
-	// +kubebuilder:default:=6443
+	// +kubebuilder:default:=50000
 	// +kubebuilder:validation:Optional
 	Port int `json:"port"`
 }

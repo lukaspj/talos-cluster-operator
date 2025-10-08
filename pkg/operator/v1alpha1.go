@@ -50,7 +50,7 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	port := machine.Spec.Port
 	if port == 0 {
-		port = 6443
+		port = 50000
 	}
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", machine.Spec.IP, port))
 	if err != nil {
@@ -77,7 +77,7 @@ func (t *TalosMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			Type:               "Available",
 			Status:             metav1.ConditionTrue,
 			Reason:             "ConnectivityTestSucceeded",
-			Message:            fmt.Sprintf("Managed to establish a connection to the machine at %s:%d"+machine.Spec.IP, port),
+			Message:            fmt.Sprintf("Managed to establish a connection to the machine at %s:%d", machine.Spec.IP, port),
 			ObservedGeneration: oldAvailable.ObservedGeneration,
 			LastTransitionTime: oldAvailable.LastTransitionTime,
 		}
@@ -185,9 +185,9 @@ func (t *TalosClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	for _, m := range machines.Items {
 		port := m.Spec.Port
 		if port == 0 {
-			port = 6443
+			port = 50000
 		}
-		endpoints = append(endpoints, fmt.Sprintf("%s:%d", m.Spec.IP, port))
+		endpoints = append(endpoints, m.Spec.IP)
 	}
 
 	ctl, err := talosctl.New(ctx, talosctl.WithEndpoints(endpoints...), talosctl.WithConfigFromFile("/var/run/secrets/talos.dev"))
