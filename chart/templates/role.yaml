@@ -8,7 +8,7 @@ rules:
     apiGroups:
       - talos-cluster-operator.lukaspj.com
     resources:
-      - *
+      - '*'
   - apiGroups:
       - coordination.k8s.io
     resources:
