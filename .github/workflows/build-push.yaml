@@ -10,6 +10,7 @@ on:
       - cmd/*
       - go.mod
       - go.sum
+      - Dockerfile
 
 permissions:
   contents: read
