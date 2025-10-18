@@ -119,7 +119,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ctl, err := talosctl.New(ctx, talosctl.WithEndpoints("1.2.3.4"), talosctl.WithConfigFromFile("/var/run/secrets/talos.dev"))
+	ctl, err := talosctl.New(ctx, talosctl.WithEndpoints("1.2.3.4"), talosctl.WithConfigFromFile("/var/run/secrets/talos.dev/config"))
 	if err != nil {
 		errorResponse(w, err, "could not initialise talosctl", http.StatusInternalServerError)
 		return
