@@ -144,6 +144,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		errorResponse(w, err, "could not marshal talos machine config spec", http.StatusInternalServerError)
 		return
 	}
+	slog.Info("machine config spec", "conf", string(conf))
 	err = yaml.Unmarshal(conf, &machineConfig)
 	if err != nil {
 		errorResponse(w, err, "could not unmarshal talos machine config spec", http.StatusInternalServerError)
