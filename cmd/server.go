@@ -8,9 +8,9 @@ import (
 )
 
 var machineconfigCmd = &cobra.Command{
-	Use:   "machineconfig",
-	Short: "Talos MachineConfig Provider",
-	Long:  "Talos MachineConfig Provider",
+	Use:   "server",
+	Short: "Talos Server",
+	Long:  "Talos Server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := ServerConfig()
 		if err != nil {

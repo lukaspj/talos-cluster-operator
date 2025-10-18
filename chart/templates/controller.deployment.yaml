@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ .Release.Name }}-controller
 spec:
   selector:
     matchLabels:
-      app: {{ .Release.Name }}
+      app: {{ .Release.Name }}-controller
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}
+        app: {{ .Release.Name }}-controller
     spec:
       automountServiceAccountToken: true
-      serviceAccountName: {{ .Release.Name }}
+      serviceAccountName: {{ .Release.Name }}-controller
       containers:
         - name: operator
           image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:{{ .Values.image.tag }}
@@ -34,4 +34,4 @@ spec:
       volumes:
         - name: talos-secrets
           secret:
-            secretName: {{ .Release.Name }}
+            secretName: {{ .Release.Name }}-controller

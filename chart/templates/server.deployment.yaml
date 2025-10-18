@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-server
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-server
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-server
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: {{ .Release.Name }}-server
+      containers:
+        - name: operator
+          image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:{{ .Values.image.tag }}
+          startupProbe:
+            httpGet:
+              port: 8081
+              path: /readyz
+          livenessProbe:
+            httpGet:
+              port: 8081
+              path: /livez
+          readinessProbe:
+            httpGet:
+              port: 8081
+              path: /readyz
+          volumeMounts:
+            - mountPath: /var/run/secrets/talos.dev
+              name: talos-secrets
+      volumes:
+        - name: talos-secrets
+          secret:
+            secretName: {{ .Release.Name }}-server
