@@ -18,17 +18,21 @@ spec:
           image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:{{ .Values.image.tag }}
           args:
             - server
+          ports:
+            - containerPort: 4242
+              name: http
+              protocol: TCP
           startupProbe:
             httpGet:
-              port: 8081
+              port: 4242
               path: /readyz
           livenessProbe:
             httpGet:
-              port: 8081
+              port: 4242
               path: /livez
           readinessProbe:
             httpGet:
-              port: 8081
+              port: 4242
               path: /readyz
           volumeMounts:
             - mountPath: /var/run/secrets/talos.dev
