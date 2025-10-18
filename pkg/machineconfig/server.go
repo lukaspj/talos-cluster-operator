@@ -60,7 +60,7 @@ func (s *Server) Routes() http.Handler {
 
 func WithMiddleware(h http.Handler, m ...Middleware) http.Handler {
 	for i := len(m); i > 0; i-- {
-		h = m[i](h)
+		h = m[i-1](h)
 	}
 
 	return h
@@ -89,6 +89,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 
 	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
+		errorResponse(w, err, "could not read currentdd  namespace", http.StatusInternalServerError)
 		return
 	}
 
@@ -96,58 +97,64 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 
 	clusterConfig, err := rest.InClusterConfig()
 	if err != nil {
+		errorResponse(w, err, "failed to get in-cluster configuration", http.StatusInternalServerError)
 		return
 	}
 	clientset, err := kubernetes.NewForConfig(clusterConfig)
 	if err != nil {
+		errorResponse(w, err, "failed to initialise Kubernetes client", http.StatusInternalServerError)
 		return
 	}
 
 	configMap, err := clientset.CoreV1().ConfigMaps(string(ns)).Get(ctx, configName, metav1.GetOptions{})
 	if err != nil {
+		errorResponse(w, err, "could not get machine patch", http.StatusInternalServerError)
 		return
 	}
 
 	var machineConfig v1alpha1.Config
 	err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &machineConfig)
 	if err != nil {
+		errorResponse(w, err, "could not unmarshal machine patch", http.StatusInternalServerError)
 		return
 	}
 
 	ctl, err := talosctl.New(ctx, talosctl.WithEndpoints("1.2.3.4"), talosctl.WithConfigFromFile("/var/run/secrets/talos.dev"))
 	if err != nil {
+		errorResponse(w, err, "could not initialise talosctl", http.StatusInternalServerError)
 		return
 	}
 
-	talosNamespace := resource.Namespace("config")
+	talosNamespace := "config"
 	resourceKind, err := ctl.ResolveResourceKind(ctx, &talosNamespace, "machineconfig")
 	if err != nil {
+		errorResponse(w, err, "could not get talos machine config kind", http.StatusInternalServerError)
 		return
 	}
 
 	r, err := ctl.COSI.Get(ctx, resource.NewMetadata(talosNamespace, resourceKind.TypedSpec().Type, "v1alpha1", resource.VersionUndefined),
 		state.WithGetUnmarshalOptions(state.WithSkipProtobufUnmarshal()))
 	if err != nil {
+		errorResponse(w, err, "could not get talos machine config spec", http.StatusInternalServerError)
 		return
 	}
 
 	conf := r.Spec()
 	err = yaml.Unmarshal(conf.([]byte), &machineConfig)
 	if err != nil {
+		errorResponse(w, err, "could not unmarshal talos machine config spec", http.StatusInternalServerError)
 		return
 	}
 
 	input, err := generate.NewInput("_placeholder", "1.2.3.4", constants.DefaultKubernetesVersion)
 	if err != nil {
-		slog.Error("failed to set new input", "error", err)
-		http.Error(w, "failed to set new input", http.StatusInternalServerError)
+		errorResponse(w, err, "failed to set new input", http.StatusInternalServerError)
 		return
 	}
 
 	config, err := input.Config(machine.TypeWorker)
 	if err != nil {
-		slog.Error("failed to generate config", "error", err)
-		http.Error(w, "failed to generate config", http.StatusInternalServerError)
+		errorResponse(w, err, "failed to generate config", http.StatusInternalServerError)
 		return
 	}
 
@@ -167,20 +174,24 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return nil
 	})
 	if err != nil {
-		slog.Error("failed to patch config", "error", err)
-		http.Error(w, "failed to patch config", http.StatusInternalServerError)
+		errorResponse(w, err, "failed to patch config", http.StatusInternalServerError)
 		return
 	}
 
 	bs, err := config.Bytes()
 	if err != nil {
-		slog.Error("failed to serialize config", "error", err)
-		http.Error(w, "failed to serialize config", http.StatusInternalServerError)
+		errorResponse(w, err, "failed to serialize config", http.StatusInternalServerError)
+		return
 	}
 
 	_, err = w.Write(bs)
 	if err != nil {
-		slog.Error("failed to write config", "error", err)
-		http.Error(w, "failed to write config", http.StatusInternalServerError)
+		errorResponse(w, err, "failed to write config", http.StatusInternalServerError)
+		return
 	}
+}
+
+func errorResponse(w http.ResponseWriter, err error, msg string, code int) {
+	w.WriteHeader(http.StatusInternalServerError)
+	_, _ = w.Write([]byte(err.Error()))
 }
