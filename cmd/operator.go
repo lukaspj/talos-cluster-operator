@@ -17,7 +17,7 @@ var operatorCmd = &cobra.Command{
 	Short: "Talos Cluster Operator",
 	Long:  "Talos Cluster Operator",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := Config()
+		cfg, err := OperatorConfig()
 		if err != nil {
 			slog.Error("unable to load config", slog.String("error", err.Error()))
 			return err

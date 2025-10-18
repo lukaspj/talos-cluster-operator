@@ -3,6 +3,7 @@ module github.com/lukaspj/talos-cluster-operator
 go 1.25.1
 
 require (
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-logr/logr v1.4.3
 	github.com/lukaspj/go-fang v0.0.0-20250923090258-d4090bcaecc7
 	github.com/siderolabs/talos/pkg/machinery v1.11.2
