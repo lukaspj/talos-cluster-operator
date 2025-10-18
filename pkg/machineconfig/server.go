@@ -192,6 +192,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 func errorResponse(w http.ResponseWriter, err error, msg string, code int) {
-	w.WriteHeader(http.StatusInternalServerError)
-	_, _ = w.Write([]byte(err.Error()))
+	w.WriteHeader(code)
+	slog.Error(msg, "error", err)
+	_, _ = w.Write([]byte(msg))
 }
