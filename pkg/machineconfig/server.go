@@ -139,8 +139,12 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	conf := r.Spec()
-	err = yaml.Unmarshal(conf.([]byte), &machineConfig)
+	conf, err := yaml.Marshal(r.Spec())
+	if err != nil {
+		errorResponse(w, err, "could not marshal talos machine config spec", http.StatusInternalServerError)
+		return
+	}
+	err = yaml.Unmarshal(conf, &machineConfig)
 	if err != nil {
 		errorResponse(w, err, "could not unmarshal talos machine config spec", http.StatusInternalServerError)
 		return
