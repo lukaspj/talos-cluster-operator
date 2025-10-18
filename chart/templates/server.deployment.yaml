@@ -16,7 +16,8 @@ spec:
       containers:
         - name: server
           image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:{{ .Values.image.tag }}
-          args:
+          command:
+            - /talos-cluster-operator
             - server
           ports:
             - containerPort: 4242
