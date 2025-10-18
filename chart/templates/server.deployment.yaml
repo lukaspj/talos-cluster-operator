@@ -14,8 +14,10 @@ spec:
       automountServiceAccountToken: true
       serviceAccountName: {{ .Release.Name }}-server
       containers:
-        - name: operator
+        - name: server
           image: ghcr.io/lukaspj/talos-cluster-operator/talos-cluster-operator:{{ .Values.image.tag }}
+          args:
+            - server
           startupProbe:
             httpGet:
               port: 8081
