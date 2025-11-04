@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: default-machine-config
 data:
-  machineconfig: {{ .Values.server.bootstrapConfig | quote | nindent 2 }}
+  machineconfig: {{ .Values.server.bootstrapConfig | quote }}
