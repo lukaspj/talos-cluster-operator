@@ -8,3 +8,5 @@ spec:
       name: http
       protocol: TCP
       targetPort: http
+  selector:
+    app: {{ .Release.Name }}-server
