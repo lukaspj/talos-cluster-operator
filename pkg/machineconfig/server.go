@@ -2,6 +2,7 @@ package machineconfig
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
 	"net"
@@ -12,17 +13,20 @@ import (
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/lukaspj/talos-cluster-operator/pkg/api/v1alpha1"
 	talosctl "github.com/siderolabs/talos/pkg/machinery/client"
 	"github.com/siderolabs/talos/pkg/machinery/config/generate"
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
-	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
+	talosv1alpha1 "github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
 	yaml "go.yaml.in/yaml/v4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -126,7 +130,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var configPatch v1alpha1.Config
+	var configPatch talosv1alpha1.Config
 	err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &configPatch)
 	if err != nil {
 		errorResponse(w, err, "could not unmarshal machine patch", http.StatusInternalServerError)
@@ -158,7 +162,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		errorResponse(w, err, "could not marshal talos machine config spec", http.StatusInternalServerError)
 		return
 	}
-	var machineConfig v1alpha1.Config
+	var machineConfig talosv1alpha1.Config
 	slog.Info("machine config spec", "conf", string(conf))
 	err = yaml.Unmarshal(conf, &machineConfig)
 	if err != nil {
@@ -178,13 +182,69 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	config, err = config.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+	scheme := runtime.NewScheme()
+	if err := v1alpha1.AddToScheme(scheme); err != nil {
+		errorResponse(w, err, "unable to add to scheme", http.StatusInternalServerError)
+		return
+	}
+	c, _ := client.New(clusterConfig, client.Options{Scheme: scheme})
+	var l v1alpha1.MachineList
+	err = c.List(ctx, &l)
+	if err != nil {
+		errorResponse(w, err, "failed to list machines", http.StatusInternalServerError)
+		return
+	}
+
+	var machineIP net.IP
+	if s.Config.MachineCIDR != "" {
+		_, cidr, err := net.ParseCIDR(s.Config.MachineCIDR)
+		if err != nil {
+			errorResponse(w, err, "failed to parse machine CIDR", http.StatusInternalServerError)
+			return
+		}
+		machineIP = cidr.IP
+		for {
+			matched := false
+			for _, m := range l.Items {
+				ip := net.ParseIP(m.Spec.IP)
+				if ip == nil {
+					continue
+				}
+				if !cidr.Contains(ip) {
+					continue
+				}
+				if machineIP.Equal(ip) {
+					matched = true
+					machineIP = nextIP(machineIP, 1)
+
+					break
+				}
+			}
+			if cidr.Contains(machineIP) && matched {
+				continue
+			}
+			if !cidr.Contains(machineIP) {
+				errorResponse(w, err, "no more IPs available in CIDR", http.StatusInternalServerError)
+				return
+			}
+			break
+		}
+	}
+
+	config, err = config.PatchV1Alpha1(func(config *talosv1alpha1.Config) error {
 		err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &config)
 		if err != nil {
 			return err
 		}
+		b := make([]byte, 8)
+		_, _ = rand.Read(b)
 
-		config.MachineConfig.MachineNetwork.NetworkHostname = "nucas-node-x"
+		config.MachineConfig.MachineNetwork.NetworkHostname = fmt.Sprintf("nucas-node-%x", b)
+		if len(config.MachineConfig.MachineNetwork.NetworkInterfaces) > 0 && machineIP != nil {
+			config.MachineConfig.MachineNetwork.NetworkInterfaces[0].DeviceAddresses = []string{
+				machineIP.To4().String(),
+			}
+		}
 
 		config.MachineConfig.MachineToken = machineConfig.MachineConfig.MachineToken
 		config.MachineConfig.MachineCA.Crt = machineConfig.MachineConfig.MachineCA.Crt
@@ -235,4 +295,15 @@ func (m *mcYamlSpec) MarshalYAML() (any, error) {
 	}
 
 	return string(out), err
+}
+
+func nextIP(ip net.IP, inc uint) net.IP {
+	i := ip.To4()
+	v := uint(i[0])<<24 + uint(i[1])<<16 + uint(i[2])<<8 + uint(i[3])
+	v += inc
+	v3 := byte(v & 0xFF)
+	v2 := byte((v >> 8) & 0xFF)
+	v1 := byte((v >> 16) & 0xFF)
+	v0 := byte((v >> 24) & 0xFF)
+	return net.IPv4(v0, v1, v2, v3)
 }

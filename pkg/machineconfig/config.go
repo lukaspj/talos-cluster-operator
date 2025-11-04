@@ -6,6 +6,7 @@ type Config struct {
 	Port            int
 	TalosConfigPath string
 	Namespace       string
+	MachineCIDR     string
 }
 
 func DefaultConfig() Config {
@@ -13,6 +14,7 @@ func DefaultConfig() Config {
 		Port:            4242,
 		TalosConfigPath: "/var/run/secrets/talos.dev/config",
 		Namespace:       "default",
+		MachineCIDR:     "",
 	}
 }
 

@@ -3,3 +3,7 @@ image:
 
 server:
   bootstrapConfig: null
+
+machines:
+  bootstrapConfig: null
+  cidr: null
