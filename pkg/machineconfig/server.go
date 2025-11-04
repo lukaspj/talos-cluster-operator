@@ -231,15 +231,17 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	machineName := fmt.Sprintf("nucas-node-%x", b)
+
 	config, err = config.PatchV1Alpha1(func(config *talosv1alpha1.Config) error {
 		err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &config)
 		if err != nil {
 			return err
 		}
-		b := make([]byte, 8)
-		_, _ = rand.Read(b)
 
-		config.MachineConfig.MachineNetwork.NetworkHostname = fmt.Sprintf("nucas-node-%x", b)
+		config.MachineConfig.MachineNetwork.NetworkHostname = machineName
 		if len(config.MachineConfig.MachineNetwork.NetworkInterfaces) > 0 && machineIP != nil {
 			config.MachineConfig.MachineNetwork.NetworkInterfaces[0].DeviceAddresses = []string{
 				machineIP.To4().String(),
@@ -266,6 +268,21 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 	bs, err := config.Bytes()
 	if err != nil {
 		errorResponse(w, err, "failed to serialize config", http.StatusInternalServerError)
+		return
+	}
+
+	err = c.Create(ctx, &v1alpha1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      machineName,
+			Namespace: "machines",
+		},
+		Spec: v1alpha1.MachineSpec{
+			IP:   machineIP.String(),
+			Port: 50000,
+		},
+	})
+	if err != nil {
+		errorResponse(w, err, "failed to create machine", http.StatusInternalServerError)
 		return
 	}
 
