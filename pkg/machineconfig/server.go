@@ -195,14 +195,14 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var machineIP net.IP
+	var machineIP *net.IPNet
 	if s.Config.MachineCIDR != "" {
 		_, cidr, err := net.ParseCIDR(s.Config.MachineCIDR)
 		if err != nil {
 			errorResponse(w, err, "failed to parse machine CIDR", http.StatusInternalServerError)
 			return
 		}
-		machineIP = cidr.IP
+		machineIP = cidr
 		for {
 			matched := false
 			for _, m := range l.Items {
@@ -213,17 +213,17 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 				if !cidr.Contains(ip) {
 					continue
 				}
-				if machineIP.Equal(ip) {
+				if machineIP.IP.Equal(ip) {
 					matched = true
-					machineIP = nextIP(machineIP, 1)
+					machineIP.IP = nextIP(machineIP.IP, 1)
 
 					break
 				}
 			}
-			if cidr.Contains(machineIP) && matched {
+			if cidr.Contains(machineIP.IP) && matched {
 				continue
 			}
-			if !cidr.Contains(machineIP) {
+			if !cidr.Contains(machineIP.IP) {
 				errorResponse(w, err, "no more IPs available in CIDR", http.StatusInternalServerError)
 				return
 			}
@@ -244,7 +244,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		config.MachineConfig.MachineNetwork.NetworkHostname = machineName
 		if len(config.MachineConfig.MachineNetwork.NetworkInterfaces) > 0 && machineIP != nil {
 			config.MachineConfig.MachineNetwork.NetworkInterfaces[0].DeviceAddresses = []string{
-				machineIP.To4().String(),
+				machineIP.String(),
 			}
 		}
 
