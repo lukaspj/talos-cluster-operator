@@ -1,2 +1,5 @@
 image:
   tag: sha-3fff5c9
+
+server:
+  bootstrapConfig: null
