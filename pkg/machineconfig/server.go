@@ -126,8 +126,8 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var machineConfig v1alpha1.Config
-	err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &machineConfig)
+	var configPatch v1alpha1.Config
+	err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &configPatch)
 	if err != nil {
 		errorResponse(w, err, "could not unmarshal machine patch", http.StatusInternalServerError)
 		return
@@ -158,6 +158,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		errorResponse(w, err, "could not marshal talos machine config spec", http.StatusInternalServerError)
 		return
 	}
+	var machineConfig v1alpha1.Config
 	slog.Info("machine config spec", "conf", string(conf))
 	err = yaml.Unmarshal(conf, &machineConfig)
 	if err != nil {
@@ -178,6 +179,11 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	config, err = config.PatchV1Alpha1(func(config *v1alpha1.Config) error {
+		err = yaml.Unmarshal([]byte(configMap.Data["machineconfig"]), &config)
+		if err != nil {
+			return err
+		}
+
 		config.MachineConfig.MachineNetwork.NetworkHostname = "nucas-node-x"
 
 		config.MachineConfig.MachineToken = machineConfig.MachineConfig.MachineToken
