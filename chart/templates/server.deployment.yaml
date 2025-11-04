@@ -20,6 +20,7 @@ spec:
             - /talos-cluster-operator
             - server
             - --machine-cidr={{ .Values.machines.cidr }}
+            - --machine-subnet-size={{ .Values.machines.subnetSize }}
           ports:
             - containerPort: 4242
               name: http

@@ -7,3 +7,4 @@ server:
 machines:
   bootstrapConfig: null
   cidr: null
+  subnetSize: null

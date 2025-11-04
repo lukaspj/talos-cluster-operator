@@ -23,6 +23,11 @@ var machineconfigCmd = &cobra.Command{
 			cfg.MachineCIDR = machineCIDR
 		}
 
+		machineSubnetSize, err := cmd.Flags().GetInt("machine-subnet-size")
+		if err == nil {
+			cfg.MachineSubnetSize = machineSubnetSize
+		}
+
 		slog.Info("config loaded", slog.String("config", cfg.String()))
 
 		slog.SetLogLoggerLevel(slog.LevelInfo)
@@ -35,5 +40,6 @@ var machineconfigCmd = &cobra.Command{
 
 func init() {
 	machineconfigCmd.Flags().StringP("machine-cidr", "c", "", "Machine CIDR")
+	machineconfigCmd.Flags().IntP("machine-subnet-size", "s", 0, "Machine subnet size")
 	rootCmd.AddCommand(machineconfigCmd)
 }

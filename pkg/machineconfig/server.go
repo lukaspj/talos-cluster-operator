@@ -195,14 +195,16 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var machineIP *net.IPNet
+	machineIP := &net.IPNet{
+		Mask: net.CIDRMask(s.Config.MachineSubnetSize, 32),
+	}
 	if s.Config.MachineCIDR != "" {
 		_, cidr, err := net.ParseCIDR(s.Config.MachineCIDR)
 		if err != nil {
 			errorResponse(w, err, "failed to parse machine CIDR", http.StatusInternalServerError)
 			return
 		}
-		machineIP = cidr
+		machineIP.IP = cidr.IP
 		for {
 			matched := false
 			for _, m := range l.Items {

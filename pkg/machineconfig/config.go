@@ -3,10 +3,11 @@ package machineconfig
 import "fmt"
 
 type Config struct {
-	Port            int
-	TalosConfigPath string
-	Namespace       string
-	MachineCIDR     string
+	Port              int
+	TalosConfigPath   string
+	Namespace         string
+	MachineCIDR       string
+	MachineSubnetSize int
 }
 
 func DefaultConfig() Config {
@@ -19,5 +20,5 @@ func DefaultConfig() Config {
 }
 
 func (c *Config) String() string {
-	return fmt.Sprintf("Config{Port: %d, Namespace: %s, TalosConfigPath: %s, MachineCIDR: %s}", c.Port, c.Namespace, c.TalosConfigPath, c.MachineCIDR)
+	return fmt.Sprintf("Config{Port: %d, Namespace: %s, TalosConfigPath: %s, MachineCIDR: %s, MachineSubnetSize: %d}", c.Port, c.Namespace, c.TalosConfigPath, c.MachineCIDR, c.MachineSubnetSize)
 }
