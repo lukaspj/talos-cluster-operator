@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/cosi-project/runtime/pkg/resource"
 	"github.com/cosi-project/runtime/pkg/state"
@@ -16,10 +17,12 @@ import (
 	"github.com/siderolabs/talos/pkg/machinery/config/machine"
 	"github.com/siderolabs/talos/pkg/machinery/config/types/v1alpha1"
 	"github.com/siderolabs/talos/pkg/machinery/constants"
-	"gopkg.in/yaml.v3"
+	yaml "go.yaml.in/yaml/v4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -89,16 +92,27 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 
 	ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
-		errorResponse(w, err, "could not read currentdd  namespace", http.StatusInternalServerError)
-		return
+		slog.Error("could not read current namespace, using default", "error", err)
+		ns = []byte(s.Config.Namespace)
 	}
 
 	ctx := req.Context()
 
 	clusterConfig, err := rest.InClusterConfig()
 	if err != nil {
-		errorResponse(w, err, "failed to get in-cluster configuration", http.StatusInternalServerError)
-		return
+		slog.Error("failed to get in-cluster configuration", "error", err)
+
+		var kubeconfig string
+		if home := homedir.HomeDir(); home != "" {
+			kubeconfig = filepath.Join(home, ".kube", "config")
+		}
+
+		// use the current context in kubeconfig
+		clusterConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			errorResponse(w, err, "failed to get kubernetes client configuration", http.StatusInternalServerError)
+			return
+		}
 	}
 	clientset, err := kubernetes.NewForConfig(clusterConfig)
 	if err != nil {
@@ -119,7 +133,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ctl, err := talosctl.New(ctx, talosctl.WithConfigFromFile("/var/run/secrets/talos.dev/config"))
+	ctl, err := talosctl.New(ctx, talosctl.WithConfigFromFile(s.Config.TalosConfigPath))
 	if err != nil {
 		errorResponse(w, err, "could not initialise talosctl", http.StatusInternalServerError)
 		return
@@ -200,4 +214,19 @@ func errorResponse(w http.ResponseWriter, err error, msg string, code int) {
 	w.WriteHeader(code)
 	slog.Error(msg, "error", err)
 	_, _ = w.Write([]byte(msg))
+}
+
+type mcYamlRepr struct{ resource.Resource }
+
+func (m *mcYamlRepr) Spec() any { return &mcYamlSpec{res: m.Resource} }
+
+type mcYamlSpec struct{ res resource.Resource }
+
+func (m *mcYamlSpec) MarshalYAML() (any, error) {
+	out, err := yaml.Marshal(m.res.Spec())
+	if err != nil {
+		return nil, err
+	}
+
+	return string(out), err
 }

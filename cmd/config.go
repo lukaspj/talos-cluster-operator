@@ -18,7 +18,7 @@ func OperatorConfig() (operator.Config, error) {
 func ServerConfig() (machineconfig.Config, error) {
 	config, err := fang.New[machineconfig.Config]().
 		WithDefault(machineconfig.DefaultConfig()).
-		WithAutomaticEnv("TALOS_SERVER").
+		WithAutomaticEnv("TALOS_OPERATOR").
 		Load()
 
 	return config, err
