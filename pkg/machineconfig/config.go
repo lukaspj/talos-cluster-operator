@@ -19,5 +19,5 @@ func DefaultConfig() Config {
 }
 
 func (c *Config) String() string {
-	return fmt.Sprintf("Config{Port: %d, Namespace: %s, TalosConfigPath: %s}", c.Port, c.Namespace, c.TalosConfigPath)
+	return fmt.Sprintf("Config{Port: %d, Namespace: %s, TalosConfigPath: %s, MachineCIDR: %s}", c.Port, c.Namespace, c.TalosConfigPath, c.MachineCIDR)
 }

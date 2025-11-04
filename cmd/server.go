@@ -17,6 +17,12 @@ var machineconfigCmd = &cobra.Command{
 			slog.Error("unable to load config", slog.String("error", err.Error()))
 			return err
 		}
+
+		machineCIDR, err := cmd.Flags().GetString("machine-cidr")
+		if err == nil {
+			cfg.MachineCIDR = machineCIDR
+		}
+
 		slog.Info("config loaded", slog.String("config", cfg.String()))
 
 		slog.SetLogLoggerLevel(slog.LevelInfo)
@@ -28,5 +34,6 @@ var machineconfigCmd = &cobra.Command{
 }
 
 func init() {
+	machineconfigCmd.Flags().StringP("machine-cidr", "c", "", "Machine CIDR")
 	rootCmd.AddCommand(machineconfigCmd)
 }
