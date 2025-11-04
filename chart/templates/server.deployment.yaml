@@ -19,7 +19,7 @@ spec:
           command:
             - /talos-cluster-operator
             - server
-            - --machine-cidr={{ .Values.machines.cidr | quote }}
+            - --machine-cidr={{ .Values.machines.cidr }}
           ports:
             - containerPort: 4242
               name: http
