@@ -231,7 +231,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	b := make([]byte, 8)
+	b := make([]byte, 4)
 	_, _ = rand.Read(b)
 	machineName := fmt.Sprintf("nucas-node-%x", b)
 
