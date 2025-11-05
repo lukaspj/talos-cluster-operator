@@ -279,7 +279,7 @@ func (s *Server) NewMachineConfig(w http.ResponseWriter, req *http.Request) {
 			Namespace: "machines",
 		},
 		Spec: v1alpha1.MachineSpec{
-			IP:   machineIP.String(),
+			IP:   machineIP.IP.String(),
 			Port: 50000,
 		},
 	})
